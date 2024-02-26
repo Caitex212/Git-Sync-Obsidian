@@ -145,16 +145,25 @@ class GitSettingTab extends PluginSettingTab {
         const repo = this.plugin.settings.repos[index];
         const repoContainer = containerEl.createDiv();
 
-        new Setting(repoContainer)
-            .setName(`Repository ${index + 1}`)
-            .setDesc('Configure repository settings')
+        const toggleButton = repoContainer.createEl('button');
+        toggleButton.textContent = `Repository ${index + 1}`;
+        toggleButton.className = 'repo-toggle';
+        toggleButton.onclick = () => {
+            repoDetails.classList.toggle('repo-details-hidden');
+        };
+
+        const repoDetails = containerEl.createDiv();
+        repoDetails.className = 'repo-details';
+
+        new Setting(repoDetails)
+            .setName('Configure repository settings')
             .addButton(button => button.setButtonText('Remove').onClick(() => {
                 this.plugin.settings.repos.splice(index, 1);
                 this.display();
                 this.plugin.saveSettings();
             }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Repo Link')
             .setDesc('Enter the Git repository link')
             .addText(text => text
@@ -165,7 +174,7 @@ class GitSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Username')
             .setDesc('Enter your Git username')
             .addText(text => text
@@ -176,7 +185,7 @@ class GitSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Git Key')
             .setDesc('Enter your Git access token or password')
             .addText(text => text
@@ -187,7 +196,7 @@ class GitSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Git Folder Path')
             .setDesc('Enter the path to your Git repository folder')
             .addText(text => text
@@ -198,19 +207,19 @@ class GitSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Push')
             .addButton(button => button.setButtonText('Push').onClick(() => {
                 this.plugin.commitAndPush(repo);
             }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Pull')
             .addButton(button => button.setButtonText('Pull').onClick(() => {
                 this.plugin.pullChanges(repo);
             }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Push Enabled')
             .addToggle(toggle => toggle
                 .setValue(repo.pushEnabled)
@@ -219,7 +228,7 @@ class GitSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(repoContainer)
+        new Setting(repoDetails)
             .setName('Pull Enabled')
             .addToggle(toggle => toggle
                 .setValue(repo.pullEnabled)
@@ -227,5 +236,7 @@ class GitSettingTab extends PluginSettingTab {
                     repo.pullEnabled = value;
                     await this.plugin.saveSettings();
                 }));
+                
+        repoDetails.classList.add('repo-details-hidden');
     }
 }
