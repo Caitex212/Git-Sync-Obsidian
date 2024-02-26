@@ -1,0 +1,11 @@
+{
+	"id": "git-sync",
+	"name": "Git Sync",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Adds functions to synchronise to a git repo.",
+	"author": "Caitex212",
+	"authorUrl": "https://github.com/Caitex212",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
