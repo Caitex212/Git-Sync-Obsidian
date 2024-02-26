@@ -98,9 +98,9 @@ export default class GitIntegrationPlugin extends Plugin {
     
     async setGitMerge() {
         try {
-            new Notice('Setting Git merge (1/1)');
+            new Notice('Setting Git merge (1/2)');
             await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git config pull.rebase false`);
-            new Notice('Git merge set successfully! (1/2)');
+            new Notice('Git merge set successfully! (2/2)');
         } catch (error) {
             console.error("Error setting Git merge:", error);
             new Notice('An error occurred while setting Git merge:'+ error, 5000);
@@ -109,9 +109,9 @@ export default class GitIntegrationPlugin extends Plugin {
 
     async setGitRebase() {
         try {
-            new Notice('Setting Git rebase (1/1)');
+            new Notice('Setting Git rebase (1/2)');
             await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git config pull.rebase true`);
-            new Notice('Git rebase set successfully! (1/2)');
+            new Notice('Git rebase set successfully! (2/2)');
         } catch (error) {
             console.error("Error setting Git rebase:", error);
             new Notice('An error occurred while setting Git rebase:'+ error, 5000);
