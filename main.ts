@@ -2,19 +2,31 @@ import { PluginSettingTab, Setting, App, Plugin } from 'obsidian';
 import { Notice } from 'obsidian';
 import { exec } from 'child_process';
 
-interface GitSettings {
+interface RepoSettings {
     gitLink: string;
     username: string;
     gitKey: string;
     gitFolderPath: string;
+    pushEnabled: boolean;
+    pullEnabled: boolean;
 }
 
-const DEFAULT_SETTINGS: GitSettings = {
+interface GitSettings {
+    repos: RepoSettings[];
+}
+
+const DEFAULT_REPO_SETTINGS: RepoSettings = {
     gitLink: '',
     username: '',
     gitKey: '',
-    gitFolderPath: ''
-}
+    gitFolderPath: '',
+    pushEnabled: true,
+    pullEnabled: true,
+};
+
+const DEFAULT_SETTINGS: GitSettings = {
+    repos: [Object.assign({}, DEFAULT_REPO_SETTINGS)],
+};
 
 export default class GitIntegrationPlugin extends Plugin {
     settings: GitSettings;
@@ -22,16 +34,11 @@ export default class GitIntegrationPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        this.addRibbonIcon('push-pull', 'Push & Pull', async () => {
-            await this.commitAndPush();
-            await this.pullChanges();
-        });
-
         this.addCommand({
             id: 'commit-and-push',
             name: 'Commit & Push',
             callback: async () => {
-                await this.commitAndPush();
+                await this.commitAndPushAll();
             }
         });
 
@@ -39,23 +46,7 @@ export default class GitIntegrationPlugin extends Plugin {
             id: 'pull',
             name: 'Pull Changes',
             callback: async () => {
-                await this.pullChanges();
-            }
-        });
-
-        this.addCommand({
-            id: 'set-git-merge',
-            name: 'Set Git Merge',
-            callback: async () => {
-                await this.setGitMerge();
-            }
-        });
-
-        this.addCommand({
-            id: 'set-git-rebase',
-            name: 'Set Git Rebase',
-            callback: async () => {
-                await this.setGitRebase();
+                await this.pullAll();
             }
         });
 
@@ -70,51 +61,41 @@ export default class GitIntegrationPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    async commitAndPush() {
+    async commitAndPushAll() {
+        for (const repo of this.settings.repos) {
+            if (repo.pushEnabled) await this.commitAndPush(repo);
+        }
+    }
+
+    async pullAll() {
+        for (const repo of this.settings.repos) {
+            if (repo.pullEnabled) await this.pullChanges(repo);
+        }
+    }
+
+    async commitAndPush(repo: RepoSettings) {
         try {
             const now = new Date();
             const commitMessage = `Commit on ${now.toISOString()}`;
-            new Notice('Starting commit & push (1/2)');
-            const gitCredentials = `${this.settings.username}:${this.settings.gitKey}`;
-            await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git add . && git commit -m "${commitMessage}" && git push https://${gitCredentials}@${this.settings.gitLink}`);
-            new Notice('Commit and push successful! (2/2)');
+            new Notice(`Starting commit & push for ${repo.gitLink}`);
+            const gitCredentials = `${repo.username}:${repo.gitKey}`;
+            await this.executeGitCommand(`cd ${repo.gitFolderPath} && git add . && git commit -m "${commitMessage}" && git push https://${gitCredentials}@${repo.gitLink}`);
+            new Notice(`Commit and push for ${repo.gitLink} successful!`);
         } catch (error) {
-            console.error("Error executing Git command:", error);
-            new Notice('An error occurred while committing and pushing.:'+ error, 5000);
+            console.error(`Error executing Git command for ${repo.gitLink}:`, error);
+            new Notice(`An error occurred while committing and pushing for ${repo.gitLink}: ${error}`, 5000);
         }
     }
 
-    async pullChanges() {
+    async pullChanges(repo: RepoSettings) {
         try {
-            const gitCredentials = `${this.settings.username}:${this.settings.gitKey}`;
-            new Notice('Starting pull (1/2)');
-            await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git pull https://${gitCredentials}@${this.settings.gitLink}`);
-            new Notice('Pull successful! (2/2)');
+            const gitCredentials = `${repo.username}:${repo.gitKey}`;
+            new Notice(`Starting pull for ${repo.gitLink}`);
+            await this.executeGitCommand(`cd ${repo.gitFolderPath} && git pull https://${gitCredentials}@${repo.gitLink}`);
+            new Notice(`Pull for ${repo.gitLink} successful!`);
         } catch (error) {
-            console.error("Error executing Git command:", error);
-            new Notice('An error occurred while pulling changes.:'+ error, 5000);
-        }
-    }
-    
-    async setGitMerge() {
-        try {
-            new Notice('Setting Git merge (1/2)');
-            await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git config pull.rebase false`);
-            new Notice('Git merge set successfully! (2/2)');
-        } catch (error) {
-            console.error("Error setting Git merge:", error);
-            new Notice('An error occurred while setting Git merge:'+ error, 5000);
-        }
-    }
-
-    async setGitRebase() {
-        try {
-            new Notice('Setting Git rebase (1/2)');
-            await this.executeGitCommand(`cd ${this.settings.gitFolderPath} && git config pull.rebase true`);
-            new Notice('Git rebase set successfully! (2/2)');
-        } catch (error) {
-            console.error("Error setting Git rebase:", error);
-            new Notice('An error occurred while setting Git rebase:'+ error, 5000);
+            console.error(`Error executing Git command for ${repo.gitLink}:`, error);
+            new Notice(`An error occurred while pulling changes for ${repo.gitLink}: ${error}`, 5000);
         }
     }
 
@@ -146,47 +127,104 @@ class GitSettingTab extends PluginSettingTab {
 
         containerEl.empty();
 
+        for (let i = 0; i < this.plugin.settings.repos.length; i++) {
+            this.displayRepoSettings(containerEl, i);
+        }
+
         new Setting(containerEl)
+            .setName('Add Repository')
+            .setDesc('Add a new repository to manage')
+            .addButton(button => button.setButtonText('Add').onClick(() => {
+                this.plugin.settings.repos.push(Object.assign({}, DEFAULT_REPO_SETTINGS));
+                this.displayRepoSettings(containerEl, this.plugin.settings.repos.length - 1);
+                this.plugin.saveSettings();
+            }));
+    }
+
+    displayRepoSettings(containerEl: HTMLElement, index: number): void {
+        const repo = this.plugin.settings.repos[index];
+        const repoContainer = containerEl.createDiv();
+
+        new Setting(repoContainer)
+            .setName(`Repository ${index + 1}`)
+            .setDesc('Configure repository settings')
+            .addButton(button => button.setButtonText('Remove').onClick(() => {
+                this.plugin.settings.repos.splice(index, 1);
+                this.display();
+                this.plugin.saveSettings();
+            }));
+
+        new Setting(repoContainer)
             .setName('Repo Link')
             .setDesc('Enter the Git repository link')
             .addText(text => text
                 .setPlaceholder('github.com/username/repository')
-                .setValue(this.plugin.settings.gitLink)
+                .setValue(repo.gitLink)
                 .onChange(async (value) => {
-                    this.plugin.settings.gitLink = value;
+                    repo.gitLink = value;
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
+        new Setting(repoContainer)
             .setName('Username')
             .setDesc('Enter your Git username')
             .addText(text => text
                 .setPlaceholder('username')
-                .setValue(this.plugin.settings.username)
+                .setValue(repo.username)
                 .onChange(async (value) => {
-                    this.plugin.settings.username = value;
+                    repo.username = value;
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
+        new Setting(repoContainer)
             .setName('Git Key')
             .setDesc('Enter your Git access token or password')
             .addText(text => text
                 .setPlaceholder('Git key')
-                .setValue(this.plugin.settings.gitKey)
+                .setValue(repo.gitKey)
                 .onChange(async (value) => {
-                    this.plugin.settings.gitKey = value;
+                    repo.gitKey = value;
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
+        new Setting(repoContainer)
             .setName('Git Folder Path')
             .setDesc('Enter the path to your Git repository folder')
             .addText(text => text
                 .setPlaceholder('/path/to/your/git/folder')
-                .setValue(this.plugin.settings.gitFolderPath)
+                .setValue(repo.gitFolderPath)
                 .onChange(async (value) => {
-                    this.plugin.settings.gitFolderPath = value;
+                    repo.gitFolderPath = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(repoContainer)
+            .setName('Push')
+            .addButton(button => button.setButtonText('Push').onClick(() => {
+                this.plugin.commitAndPush(repo);
+            }));
+
+        new Setting(repoContainer)
+            .setName('Pull')
+            .addButton(button => button.setButtonText('Pull').onClick(() => {
+                this.plugin.pullChanges(repo);
+            }));
+
+        new Setting(repoContainer)
+            .setName('Push Enabled')
+            .addToggle(toggle => toggle
+                .setValue(repo.pushEnabled)
+                .onChange(async (value) => {
+                    repo.pushEnabled = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(repoContainer)
+            .setName('Pull Enabled')
+            .addToggle(toggle => toggle
+                .setValue(repo.pullEnabled)
+                .onChange(async (value) => {
+                    repo.pullEnabled = value;
                     await this.plugin.saveSettings();
                 }));
     }
