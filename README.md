@@ -34,7 +34,3 @@ If you encounter any issues or have suggestions for improvements, please feel fr
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
----
-
-Replace `yourusername` in the Support section with your GitHub username. Also, make sure to include a LICENSE file with your preferred license (e.g., MIT License) in your project repository. Adjust the README.md content as needed based on your project specifics.
