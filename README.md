@@ -22,14 +22,14 @@ Git Sync is an Obsidian plugin that allows you to synchronize your Obsidian note
 
 ## Configuration
 
-- **Repo Link:** Enter the link to your remote Git repository (e.g., `https://github.com/username/repository`).
+- **Repo Link:** Enter the link to your remote Git repository (e.g., `github.com/username/repository`).
 - **Username:** Enter your Git username.
 - **Git Key:** Enter your Git access token or password.
 - **Git Folder Path:** Enter the path to your local Git repository folder.
 
 ## Support
 
-If you encounter any issues or have suggestions for improvements, please feel free to [open an issue](https://github.com/yourusername/Git-Sync/issues) on GitHub.
+If you encounter any issues or have suggestions for improvements, please feel free to [open an issue](https://github.com/Caitex212/Git-Sync/issues) on GitHub.
 
 ## License
 
