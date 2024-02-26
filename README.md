@@ -11,9 +11,7 @@ Git Sync is an Obsidian plugin that allows you to synchronize your Obsidian note
 
 ## Installation
 
-1. Open Obsidian and navigate to the "Community Plugins" settings.
-2. Search for "Git Sync" and click "Install" to install the plugin.
-3. Once installed, enable the plugin from the "Installed Plugins" section.
+Clone this repo and extract the folder into your Obsidian plugins folder.
 
 ## Usage
 
